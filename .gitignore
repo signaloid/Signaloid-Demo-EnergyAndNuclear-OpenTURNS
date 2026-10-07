@@ -1,0 +1,17 @@
+*.o
+.claude/
+.DS_Store
+.signaloid-cli-latest-build-id.txt
+.signaloid-cli-latest-build-output.txt
+.signaloid-cli-latest-result-output.txt
+.signaloid-cli-latest-task-id.txt
+build/
+builds/
+data.out
+demo-native-mc
+GITHUB_TOKEN_FOR_SCCE_CONNECTION
+GITHUB_USERNAME
+OpenTURNS/signaloid_openturns/__pycache__/
+results/
+SIGNALOID_SCCE_API_KEY
+submodules/.DS_Store
