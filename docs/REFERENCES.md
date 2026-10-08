@@ -46,7 +46,7 @@ Microarchitecture*, pp. 1254--1269. ACM.
 This is the foundational paper for Signaloid's technology. It introduces the
 Laplace microarchitecture that tracks probability distributions through
 computation on a RISC-V processor, and defines the ISA extensions that became
-the UxHw® API used by this package.
+the UxHw® API used by this demo.
 
 ### [4] Bilgin et al. (2025), distribution quantization error bounds
 

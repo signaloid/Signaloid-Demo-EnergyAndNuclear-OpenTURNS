@@ -18,10 +18,6 @@ allowing direct comparison between traditional Monte Carlo sampling and
 Signaloid's single-pass uncertainty tracking on the Signaloid Cloud
 Compute Engine (SCCE).
 
-The repository also holds `OpenTURNS/signaloid_openturns`, a Python package
-that maps OpenTURNS distributions and expressions to generated C code and runs
-it on SCCE. See the [Python package](#python-package) section.
-
 
 ## Cloning the repository
 
@@ -161,14 +157,6 @@ Input distributions          (setInputVariables() in kernel.c, or -i CSV)
 Every distribution parameter (`kParam*`) and physical constant (`kConst*`),
 and the input and output index enums, live in
 [`src/models-config.h`](src/models-config.h).
-
-## Python package
-
-`OpenTURNS/signaloid_openturns` is a Python package that takes an OpenTURNS
-model, maps its `ot.Distribution` inputs to UxHw calls and its muParser
-expressions to C, generates a complete C source file, and runs it on SCCE
-through the REST API. It is independent of the C demo in `src/`. See
-[`OpenTURNS/signaloid_openturns/README.md`](OpenTURNS/signaloid_openturns/README.md).
 
 
 ## References

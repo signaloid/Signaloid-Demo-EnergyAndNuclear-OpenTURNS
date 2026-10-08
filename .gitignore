@@ -11,7 +11,6 @@ data.out
 demo-native-mc
 GITHUB_TOKEN_FOR_SCCE_CONNECTION
 GITHUB_USERNAME
-OpenTURNS/signaloid_openturns/__pycache__/
 results/
 SIGNALOID_SCCE_API_KEY
 submodules/.DS_Store
