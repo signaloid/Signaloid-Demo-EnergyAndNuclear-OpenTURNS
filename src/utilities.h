@@ -27,10 +27,12 @@
 #include <inttypes.h>
 #include "common.h"
 #include "models-config.h"
+#include "kernel.h"
 
 typedef struct
 {
-	CommonCommandLineArguments common;
+	CommonCommandLineArguments  common;
+	KernelParameters            kernelParameters;
 } CommandLineArguments;
 
 /**
@@ -49,3 +51,29 @@ printUsage(void);
  */
 CommonConstantReturnType
 getCommandLineArguments(int argc, char *  argv[], CommandLineArguments *  arguments);
+
+#ifdef NO_OS_AVAILABLE
+
+/**
+ *	@brief	Set the hard-coded command line arguments used by the no-OS build.
+ *
+ *		This is the single place to change the configuration that no-OS
+ *		runs use, since those runs cannot be given command line arguments.
+ *		Fields not set here keep the values from
+ *		`setDefaultCommandLineArguments()`.
+ *
+ *	@param	arguments	: Pointer to struct to store arguments.
+ *	@return			: `kCommonConstantReturnTypeSuccess` if successful, else `kCommonConstantReturnTypeError`.
+ */
+CommonConstantReturnType
+setNoOSCommandLineArguments(CommandLineArguments * arguments);
+#endif
+
+/**
+ *	@brief	Set the default values for the command line arguments.
+ *
+ *	@param	arguments	: Pointer to struct to store arguments.
+ *	@return			: `kCommonConstantReturnTypeSuccess` if successful, else `kCommonConstantReturnTypeError`.
+ */
+CommonConstantReturnType
+setDefaultCommandLineArguments(CommandLineArguments * arguments);

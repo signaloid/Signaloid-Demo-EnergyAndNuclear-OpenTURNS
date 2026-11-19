@@ -28,9 +28,15 @@
 #include <math.h>
 #include <time.h>
 #include <uxhw.h>
+#include "common.h"
 #include "utilities.h"
 #include "kernel.h"
 
+#ifdef NO_OS_AVAILABLE
+
+void
+returnZeroNoOS(void);
+#endif
 
 int
 main(int argc, char *  argv[])
@@ -39,8 +45,7 @@ main(int argc, char *  argv[])
 	const char *            applicationDescription  =
 		"Propagates input uncertainty through energy and nuclear models "
 		"derived from OpenTURNS examples.";
-	double          inputVariables[kInputDistributionIndexMax];
-	const char *    expectedInputHeaders[kInputDistributionIndexMax] = {
+	const char *                expectedInputHeaders[kInputDistributionIndexMax] = {
 		"lineCurrent",
 		"lineVoltage",
 		"decayHeatShort",
@@ -59,8 +64,8 @@ main(int argc, char *  argv[])
 		"diffusionMultiplier",
 		"crackingMultiplier"
 	};
-	double          outputVariables[kOutputDistributionIndexMax];
-	const char *    outputVariableNames[kOutputDistributionIndexMax] = {
+	double                      outputVariables[kOutputDistributionIndexMax] = { 0 };
+	const char *                outputVariableNames[kOutputDistributionIndexMax] = {
 		"TransmissionPower",
 		"TotalDecayHeat",
 		"ReactionRate",
@@ -69,7 +74,7 @@ main(int argc, char *  argv[])
 		"FloodOverflow",
 		"FissionGasRelease"
 	};
-	const char *    outputVariableDescriptions[kOutputDistributionIndexMax] = {
+	const char *                outputVariableDescriptions[kOutputDistributionIndexMax] = {
 		"P = V*I + R*I^2 [MW]",
 		"Q = Qshort + Qlong [MW]",
 		"R = Phi*Sigma [reaction rate]",
@@ -78,13 +83,24 @@ main(int argc, char *  argv[])
 		"S = Zv + H - Zb - Hd [flood overflow, m]",
 		"f = fd*xdiff + fc*xcrack [FGR fraction]"
 	};
-	double *        monteCarloOutputSamples = NULL;
-	clock_t         start                   = 0;
-	clock_t         end                     = 0;
-	double          cpuTimeUsedInSeconds    = 0.0;
+	kOutputVariableTypeIndex    outputVariableTypes[kOutputDistributionIndexMax] = {
+		[kOutputIndexTransmissionPower] = kOutputVariableTypeDistribution,
+		[kOutputIndexTotalDecayHeat]    = kOutputVariableTypeDistribution,
+		[kOutputIndexReactionRate]      = kOutputVariableTypeDistribution,
+		[kOutputIndexDNBR]              = kOutputVariableTypeDistribution,
+		[kOutputIndexGridPower]         = kOutputVariableTypeDistribution,
+		[kOutputIndexFloodOverflow]     = kOutputVariableTypeDistribution,
+		[kOutputIndexFissionGasRelease] = kOutputVariableTypeDistribution
+	};
+	double *                    monteCarloOutputSamples = NULL;
+	clock_t                     start                   = 0;
+	clock_t                     end                     = 0;
+	double                      cpuTimeUsedInSeconds    = 0.0;
 
 	/*
-	 *	Get command line arguments.
+	 *	Get command line arguments. In the no-OS build there is no command
+	 *	line, so this instead applies the hard-coded configuration in
+	 *	`setNoOSCommandLineArguments()`.
 	 */
 	if (getCommandLineArguments(argc, argv, &arguments) != kCommonConstantReturnTypeSuccess)
 	{
@@ -92,14 +108,15 @@ main(int argc, char *  argv[])
 	}
 
 	/*
-	 *	Read input distributions from CSV if input from file is enabled.
+	 *	Read input distributions from CSV if input from file is enabled,
+	 *	before timing starts. The kernel reads them from `kernelParameters`.
 	 */
 	if (arguments.common.isInputFromFileEnabled)
 	{
 		if (readInputDoubleDistributionsFromCSV(
 				arguments.common.inputFilePath,
 				expectedInputHeaders,
-				inputVariables,
+				arguments.kernelParameters.inputVariables,
 				kInputDistributionIndexMax
 		))
 		{
@@ -108,6 +125,8 @@ main(int argc, char *  argv[])
 			return EXIT_FAILURE;
 		}
 	}
+
+	const bool isScalarOutputSelected = isSelectedOutputScalar(&arguments.common, outputVariableTypes, kOutputDistributionIndexMax);
 
 	/*
 	 *	Allocate for `monteCarloOutputSamples` if in Monte Carlo mode.
@@ -134,11 +153,17 @@ main(int argc, char *  argv[])
 	 */
 	if (arguments.common.isMonteCarloMode)
 	{
-		calculateOutputMonteCarlo(&arguments, inputVariables, outputVariables, monteCarloOutputSamples);
+		calculateOutputMonteCarlo(
+			&arguments.kernelParameters,
+			arguments.common.outputSelect,
+			arguments.common.numberOfMonteCarloIterations,
+			outputVariables,
+			monteCarloOutputSamples
+		);
 	}
 	else
 	{
-		calculateOutputUxHw(&arguments, inputVariables, outputVariables);
+		calculateOutputUxHw(&arguments.kernelParameters, arguments.common.outputSelect, outputVariables);
 	}
 
 	/*
@@ -151,15 +176,15 @@ main(int argc, char *  argv[])
 	}
 
 	/*
-	 *	Save Monte Carlo data to "data.out" if in Monte Carlo mode. Every
-	 *	output is a distribution, so the whole sample array is saved.
+	 *	Save Monte Carlo data to "data.out" if in Monte Carlo mode. A scalar
+	 *	output is saved as a single sample.
 	 */
 	if (arguments.common.isMonteCarloMode)
 	{
 		saveMonteCarloDoubleDataToDataDotOutFile(
 			monteCarloOutputSamples,
 			(uint64_t) (cpuTimeUsedInSeconds * 1000000),
-			arguments.common.numberOfMonteCarloIterations
+			isScalarOutputSelected ? 1 : arguments.common.numberOfMonteCarloIterations
 		);
 	}
 
@@ -174,7 +199,8 @@ main(int argc, char *  argv[])
 			outputVariables,
 			outputVariableNames,
 			kOutputDistributionIndexMax,
-			applicationDescription
+			applicationDescription,
+			outputVariableTypes
 		);
 	}
 	/*
@@ -188,7 +214,8 @@ main(int argc, char *  argv[])
 			outputVariables,
 			outputVariableNames,
 			outputVariableDescriptions,
-			monteCarloOutputSamples
+			monteCarloOutputSamples,
+			outputVariableTypes
 		);
 	}
 
@@ -225,6 +252,11 @@ main(int argc, char *  argv[])
 	{
 		free(monteCarloOutputSamples);
 	}
+#ifdef NO_OS_AVAILABLE
+	returnZeroNoOS();
+#else
 
 	return EXIT_SUCCESS;
+
+#endif
 }

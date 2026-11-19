@@ -1,8 +1,8 @@
 # Physical Models
 
-This demo propagates input uncertainty through seven closed-form models drawn
+This demo propagates input distributions through seven closed-form models drawn
 from the energy and nuclear domains. Each is a small algebraic expression, so
-the point is not the model complexity but the *uncertainty propagation*. The
+the point is not the model complexity but the *distribution propagation*. The
 same computation runs either as local Monte Carlo (GSL) or as a single-pass
 distributional computation on the Signaloid Cloud Compute Engine (SCCE), and
 the two should agree.
