@@ -2,7 +2,7 @@
 
 Research articles relevant to this repository.
 
-This project bridges two technologies, OpenTURNS (uncertainty quantification)
+This project bridges two technologies, OpenTURNS (probabilistic analysis)
 and Signaloid (hardware-accelerated distributional arithmetic). The papers
 below cover the theoretical and engineering foundations of both.
 
@@ -31,7 +31,7 @@ Norway.
 
 ---
 
-## Signaloid and uncertainty-tracking computation
+## Signaloid and distribution arithmetic
 
 ### [3] Tsoutsouras et al. (2021), Laplace microarchitecture (MICRO '21)
 

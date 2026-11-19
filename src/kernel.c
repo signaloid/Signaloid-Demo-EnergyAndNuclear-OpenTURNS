@@ -23,7 +23,6 @@
 #include <math.h>
 #include <uxhw.h>
 #include "kernel.h"
-#include "utilities.h"
 #include "models-config.h"
 
 /*
@@ -302,52 +301,54 @@ calculateFissionGasReleaseOutput(double * inputVariables)
 }
 
 /**
- *	@brief	Evaluate the selected model, or every model when `-S` selects all
- *		outputs, from the current values of the input variables.
+ *	@brief	Evaluate the selected model, or every model when `outputSelect` is
+ *		`kOutputDistributionIndexMax`, from the current values of the input
+ *		variables.
  *
- *	@param	arguments	: Pointer to command line arguments struct.
+ *	@param	outputSelect	: Index of the output to calculate, or
+ *				  `kOutputDistributionIndexMax` for all outputs.
  *	@param	inputVariables	: The input variables.
  *	@param	outputVariables	: The output variables.
  */
 static void
 calculateSelectedOutputs(
-	CommandLineArguments *  arguments,
-	double *                inputVariables,
-	double *                outputVariables)
+	size_t      outputSelect,
+	double *    inputVariables,
+	double *    outputVariables)
 {
-	bool calculateAllOutputs = (arguments->common.outputSelect == kOutputDistributionIndexMax);
+	bool calculateAllOutputs = (outputSelect == kOutputDistributionIndexMax);
 
-	if (calculateAllOutputs || (arguments->common.outputSelect == kOutputIndexTransmissionPower))
+	if (calculateAllOutputs || (outputSelect == kOutputIndexTransmissionPower))
 	{
 		outputVariables[kOutputIndexTransmissionPower] = calculateTransmissionPowerOutput(inputVariables);
 	}
 
-	if (calculateAllOutputs || (arguments->common.outputSelect == kOutputIndexTotalDecayHeat))
+	if (calculateAllOutputs || (outputSelect == kOutputIndexTotalDecayHeat))
 	{
 		outputVariables[kOutputIndexTotalDecayHeat] = calculateTotalDecayHeatOutput(inputVariables);
 	}
 
-	if (calculateAllOutputs || (arguments->common.outputSelect == kOutputIndexReactionRate))
+	if (calculateAllOutputs || (outputSelect == kOutputIndexReactionRate))
 	{
 		outputVariables[kOutputIndexReactionRate] = calculateReactionRateOutput(inputVariables);
 	}
 
-	if (calculateAllOutputs || (arguments->common.outputSelect == kOutputIndexDNBR))
+	if (calculateAllOutputs || (outputSelect == kOutputIndexDNBR))
 	{
 		outputVariables[kOutputIndexDNBR] = calculateDNBROutput(inputVariables);
 	}
 
-	if (calculateAllOutputs || (arguments->common.outputSelect == kOutputIndexGridPower))
+	if (calculateAllOutputs || (outputSelect == kOutputIndexGridPower))
 	{
 		outputVariables[kOutputIndexGridPower] = calculateGridPowerOutput(inputVariables);
 	}
 
-	if (calculateAllOutputs || (arguments->common.outputSelect == kOutputIndexFloodOverflow))
+	if (calculateAllOutputs || (outputSelect == kOutputIndexFloodOverflow))
 	{
 		outputVariables[kOutputIndexFloodOverflow] = calculateFloodOverflowOutput(inputVariables);
 	}
 
-	if (calculateAllOutputs || (arguments->common.outputSelect == kOutputIndexFissionGasRelease))
+	if (calculateAllOutputs || (outputSelect == kOutputIndexFissionGasRelease))
 	{
 		outputVariables[kOutputIndexFissionGasRelease] = calculateFissionGasReleaseOutput(inputVariables);
 	}
@@ -357,16 +358,21 @@ calculateSelectedOutputs(
 
 void
 calculateOutputMonteCarlo(
-	CommandLineArguments *  arguments,
-	double *                inputVariables,
-	double *                outputVariables,
-	double *                monteCarloOutputSamples)
+	const KernelParameters *    parameters,
+	size_t                      outputSelect,
+	size_t                      numberOfMonteCarloIterations,
+	double *                    outputVariables,
+	double *                    monteCarloOutputSamples)
 {
+	double inputVariables[kInputDistributionIndexMax];
+
+	(void) parameters;
+
 	/*
 	 *	Monte Carlo mode rejects input from file, so every iteration draws
 	 *	a fresh sample of each input before evaluating the selected model.
 	 */
-	for (size_t ii = 0; ii < arguments->common.numberOfMonteCarloIterations; ++ii)
+	for (size_t ii = 0; ii < numberOfMonteCarloIterations; ++ii)
 	{
 		setInputVariables(inputVariables);
 
@@ -376,8 +382,8 @@ calculateOutputMonteCarlo(
 		inputVariables[kInputIndexFloodFlowRate]    = fmax(inputVariables[kInputIndexFloodFlowRate], kConstFloodFlowRateFloor);
 		inputVariables[kInputIndexStricklerCoeff]   = fmax(inputVariables[kInputIndexStricklerCoeff], kConstStricklerFloor);
 
-		calculateSelectedOutputs(arguments, inputVariables, outputVariables);
-		monteCarloOutputSamples[ii] = outputVariables[arguments->common.outputSelect];
+		calculateSelectedOutputs(outputSelect, inputVariables, outputVariables);
+		monteCarloOutputSamples[ii] = outputVariables[outputSelect];
 	}
 
 	return;
@@ -385,16 +391,26 @@ calculateOutputMonteCarlo(
 
 void
 calculateOutputUxHw(
-	CommandLineArguments *  arguments,
-	double *                inputVariables,
-	double *                outputVariables)
+	const KernelParameters *    parameters,
+	size_t                      outputSelect,
+	double *                    outputVariables)
 {
+	double inputVariables[kInputDistributionIndexMax];
+
 	/*
 	 *	If input from file is not enabled, set inputs via UxHw distribution
 	 *	calls. One pass is enough. Each input carries its full distribution,
-	 *	so every output does too.
+	 *	so every output does too. Otherwise start from the inputs that
+	 *	`main()` read from the CSV file before timing started.
 	 */
-	if (!arguments->common.isInputFromFileEnabled)
+	if (parameters->isInputFromFileEnabled)
+	{
+		for (size_t ii = 0; ii < kInputDistributionIndexMax; ii++)
+		{
+			inputVariables[ii] = parameters->inputVariables[ii];
+		}
+	}
+	else
 	{
 		setInputVariables(inputVariables);
 	}
@@ -414,7 +430,7 @@ calculateOutputUxHw(
 		INFINITY
 	);
 
-	calculateSelectedOutputs(arguments, inputVariables, outputVariables);
+	calculateSelectedOutputs(outputSelect, inputVariables, outputVariables);
 
 	return;
 }

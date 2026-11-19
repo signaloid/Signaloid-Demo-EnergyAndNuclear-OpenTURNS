@@ -3,16 +3,25 @@ on:
   pull_request:
 
 jobs:
+
   check-submodules:
     runs-on: ubuntu-latest
     steps:
+    - name: Clean runner directory
+      run: |
+        ls -la ./
+        rm -rf ./* || true
+        rm -rf ./.??* || true
+        ls -la ./
+
     - name: Checkout repository
       uses: actions/checkout@v6
       with:
-        submodules: recursive
+        persist-credentials: false
 
     - name: Check common and compat submodules up to date
       run: |
+        git submodule update --init --recursive
         git clean -fdx
         git submodule foreach --recursive git clean -fdx
         git submodule foreach 'case "$sm_path" in submodules/common|submodules/compat) git fetch -fup origin "+refs/heads/*:refs/remotes/origin/*" ;; esac'
@@ -27,6 +36,7 @@ jobs:
           exit 1
         fi
 
+
   build-and-run-native-monte-carlo:
     runs-on: ubuntu-latest
     needs: check-submodules
@@ -40,7 +50,11 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v6
       with:
-        submodules: true
+        persist-credentials: false
+
+    - name: Checkout submodules
+      run: |
+        git submodule update --init
 
     - name: Install dependencies
       run: |

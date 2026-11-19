@@ -22,27 +22,51 @@
 
 #pragma once
 
-#include "utilities.h"
+#include <stdlib.h>
+#include <stdbool.h>
 #include "models-config.h"
 
 /**
+ *	@brief	Kernel inputs. The command-line parser sets the defaults and
+ *		fills it in, and `main()` reads the CSV inputs into it, so the
+ *		kernels do not depend on the command-line parsing.
+ */
+typedef struct
+{
+	/*
+	 *	True if `inputVariables` holds the inputs read from a CSV file,
+	 *	in which case the UxHw kernel does not draw them.
+	 */
+	bool isInputFromFileEnabled;
+
+	/*
+	 *	The inputs read from the CSV file, indexed by `InputDistributionIndex`.
+	 *	Unused unless `isInputFromFileEnabled`.
+	 */
+	double inputVariables[kInputDistributionIndexMax];
+} KernelParameters;
+
+/**
  *	@brief	Monte Carlo calculation kernel. On each of
- *		`arguments->common.numberOfMonteCarloIterations` iterations it
+ *		`numberOfMonteCarloIterations` iterations it
  *		draws a fresh sample of every input, clamps the inputs that
  *		OpenTURNS truncates, evaluates the selected model, and records
  *		the selected output in `monteCarloOutputSamples`.
  *
- *	@param	arguments		: Pointer to command line arguments struct.
- *	@param	inputVariables		: The input variables.
- *	@param	outputVariables		: The output variables.
- *	@param	monteCarloOutputSamples	: One sample of the selected output per iteration.
+ *	@param	parameters			: The kernel inputs.
+ *	@param	outputSelect			: Index of the output to calculate, or
+ *						  `kOutputDistributionIndexMax` for all outputs.
+ *	@param	numberOfMonteCarloIterations	: Number of Monte Carlo iterations to run.
+ *	@param	outputVariables			: The output variables.
+ *	@param	monteCarloOutputSamples		: One sample of the selected output per iteration.
  */
 void
 calculateOutputMonteCarlo(
-	CommandLineArguments *  arguments,
-	double *                inputVariables,
-	double *                outputVariables,
-	double *                monteCarloOutputSamples);
+	const KernelParameters *    parameters,
+	size_t                      outputSelect,
+	size_t                      numberOfMonteCarloIterations,
+	double *                    outputVariables,
+	double *                    monteCarloOutputSamples);
 
 /**
  *	@brief	UxHw calculation kernel. Sets every input to its full
@@ -51,12 +75,14 @@ calculateOutputMonteCarlo(
  *		the selected model(s) once so that each output carries its full
  *		distribution.
  *
- *	@param	arguments	: Pointer to command line arguments struct.
- *	@param	inputVariables	: The input variables.
+ *	@param	parameters	: The kernel inputs, including the inputs read
+ *				  from a CSV file if `isInputFromFileEnabled`.
+ *	@param	outputSelect	: Index of the output to calculate, or
+ *				  `kOutputDistributionIndexMax` for all outputs.
  *	@param	outputVariables	: The output variables.
  */
 void
 calculateOutputUxHw(
-	CommandLineArguments *  arguments,
-	double *                inputVariables,
-	double *                outputVariables);
+	const KernelParameters *    parameters,
+	size_t                      outputSelect,
+	double *                    outputVariables);

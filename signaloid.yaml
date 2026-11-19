@@ -1,13 +1,13 @@
 MinimumCore:
       Class: C0Pro
-      Microarchitecture: Jupiter
-      CorrelationTracking: Disable
+      Microarchitecture: Mercury
+      DependencyTracking: Advanced
       MemorySize: 256000
       Precision: 64
 
 TraceVariables:
     - File: "main.c"
-      LineNumber: 62
+      LineNumber: 67
       Expression: "outputVariables[0:6]"
 
 BenchmarkingVariables:
@@ -15,30 +15,38 @@ BenchmarkingVariables:
       VariableDescription: Transmission-line power (V*I + R*I^2)
       OutputObject: Distribution
       CommandLineArguments: -S 0
+      RepresentationTypes: [Mercury]
+      DependencyTracking: [Advanced]
     - VariableName: outputVariables[1]
       VariableDescription: Total decay heat (Qshort + Qlong)
       OutputObject: Distribution
       CommandLineArguments: -S 1
+      RepresentationTypes: [Rome]
+      DependencyTracking: [None]
     - VariableName: outputVariables[2]
       VariableDescription: Neutron reaction rate (Phi*Sigma)
       OutputObject: Distribution
       CommandLineArguments: -S 2
-    - VariableName: outputVariables[3]
-      VariableDescription: DNBR safety margin (qcrit/qlocal)
-      OutputObject: Distribution
-      CommandLineArguments: -S 3
+      RepresentationTypes: [Rome]
+      DependencyTracking: [None]
     - VariableName: outputVariables[4]
       VariableDescription: Grid power (G*A + S*sin(phase) + k*G^2)
       OutputObject: Distribution
       CommandLineArguments: -S 4
+      RepresentationTypes: [Mercury]
+      DependencyTracking: [Advanced]
     - VariableName: outputVariables[5]
       VariableDescription: Flood overflow (Zv + H - Zb - Hd)
       OutputObject: Distribution
       CommandLineArguments: -S 5
+      RepresentationTypes: [Mercury]
+      DependencyTracking: [Advanced]
     - VariableName: outputVariables[6]
       VariableDescription: Fission gas release (fd*xdiff + fc*xcrack)
       OutputObject: Distribution
       CommandLineArguments: -S 6
+      RepresentationTypes: [Rome]
+      DependencyTracking: [None]
 
 BenchmarkingAllOutputs:
     - CommandLineArguments: -S 7

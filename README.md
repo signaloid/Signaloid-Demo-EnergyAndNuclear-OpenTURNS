@@ -4,7 +4,7 @@
 
 # OpenTURNS Energy and Nuclear Models with Signaloid UxHw® Support
 
-This application propagates input uncertainty through seven closed-form
+This application propagates input distributions through seven closed-form
 energy and nuclear models derived from OpenTURNS examples, with support for
 Signaloid's distributional arithmetic (UxHw) as an alternative to traditional
 Monte Carlo sampling. Models 0 to 4 give physical meaning to generic
@@ -15,7 +15,7 @@ and
 use cases. The repository has been structured to fit within the
 [Signaloid UxHw benchmarking template](https://github.com/signaloid/Signaloid-Demo-Benchmarking-C-Template.git),
 allowing direct comparison between traditional Monte Carlo sampling and
-Signaloid's single-pass uncertainty tracking on the Signaloid Cloud
+Signaloid's single-pass distribution arithmetic on the Signaloid Cloud
 Compute Engine (SCCE).
 
 
@@ -50,6 +50,11 @@ make local-run                # Build and run all 7 outputs with timing
 ./demo-native-mc -M 10000 -S 0 -j    # Transmission-line power with JSON output
 ```
 
+The native build uses gcc by default. Clang is also supported. To build with clang, run
+```bash
+make local-build CC=clang
+```
+
 ## Overview
 
 In traditional Monte Carlo mode (`-M N`), the application draws N independent
@@ -59,7 +64,7 @@ one-sample Monte Carlo run, not the UxHw mode.
 
 In UxHw single-shot mode (no `-M`, on the Signaloid Cloud Compute Engine), the
 application sets each input to its full distribution once and evaluates the
-model in a single pass. Signaloid's uncertainty-tracking hardware propagates
+model in a single pass. Signaloid's distribution-extended hardware propagates
 the distributions through the arithmetic, so each output is itself a
 distribution. Natively the same mode runs against the compatibility layer and
 yields one random sample.
@@ -67,7 +72,7 @@ yields one random sample.
 ## Models
 
 The seven models are small algebraic expressions, so the point is the
-uncertainty propagation rather than the model complexity. Full physical
+distribution propagation rather than the model complexity. Full physical
 definitions, units, and OpenTURNS provenance are in
 [`docs/PHYSICAL_MODELS.md`](docs/PHYSICAL_MODELS.md).
 
@@ -83,7 +88,7 @@ definitions, units, and OpenTURNS provenance are in
 
 Models 0 and 4 reuse an input (`I` and `G`) in more than one term. On a
 distributional processor the two occurrences must remain the same random
-variable, so these two models are the cross-check for correlation tracking.
+variable, so these two models are the cross-check for dependency tracking.
 
 ## Output indices
 
@@ -117,6 +122,11 @@ make local-run                # Build and run all 7 outputs with timing
 ./demo-native-mc -S 7 -i inputs/input.csv   # Inputs from CSV samples
 ```
 
+The native build uses gcc by default. Clang is also supported. To build with clang, run
+```bash
+make local-build CC=clang
+```
+
 ### Command-line options
 ```
 Common options:
@@ -128,13 +138,41 @@ Common options:
                    (UxHw mode only, see inputs/README.md)
   -o <path>        Write the outputs to a CSV file
   -T               Enable timing
-  -b               Benchmarking output format
   -j               JSON output mode
   -v               Verbose (accepted but not supported by this demo)
   -h               Help
 ```
 
 This demo adds no options of its own.
+
+## Usage
+
+Run `./demo-native-mc -h` to print the options:
+```
+OpenTURNS Energy & Nuclear Uncertainty Propagation Models on Signaloid SCCE
+
+Usage: Valid command-line arguments are:
+	[-i, --input <Path to input CSV file : str>] (Read inputs from file.)
+	[-o, --output <Path to output CSV file : str>] (Specify the output file.)
+	[-S, --select-output <output : int>] (Compute 0-indexed output, by default 0. Set to the number of outputs to compute all outputs.)
+	[-M, --multiple-executions <Number of executions : int (Default: 1)>] (Repeatedly execute kernel for benchmarking. Also enables timing.)
+	[-T, --time] (Timing mode: Times and prints the timing of the kernel execution.)
+	[-v, --verbose] (Verbose mode: Prints extra information about demo execution.)
+	[-j, --json] (Print output in JSON format.)
+	[-h, --help] (Display this help message.)
+
+Output selection (-S):
+	-S 0  Transmission Power:  P = V*I + R*I^2        (I~Normal(1,0.1)kA, V~Uniform(220,240)kV)
+	-S 1  Total Decay Heat:    Q = Qshort + Qlong     (Qshort~Normal(5,0.5)MW, Qlong~LogNormal(0,0.3)MW)
+	-S 2  Reaction Rate:       R = Phi*Sigma          (Phi~Normal(5,0.5), Sigma~LogNormal(0,0.3))
+	-S 3  DNBR Safety Margin:  qcrit/qlocal           (qcrit~Normal(5,0.5), qlocal~LogNormal(0,0.3))
+	-S 4  Grid Power:          G*A+S*sin(phase)+k*G^2 (G~Normal(1,0.1)GW, A~Uniform(0.8,1), phase~Exp(1))
+	-S 5  Flood Overflow:      Zv+H-Zb-Hd             (Q~Gumbel(1013,558), Ks~Normal(30,7.5), Zv,Zm~Uniform)
+	-S 6  Fission Gas Release: fd*xdiff + fc*xcrack   (xdiff~LogNormal(0,0.2), xcrack~LogNormal(0,0.3))
+	-S 7  All outputs
+```
+
+The help text is generic. Without `-S` the UxHw kernel computes all outputs. Local Monte Carlo mode needs both `-S` and `-M`, and `-M` has no default there.
 
 ## Architecture
 
@@ -161,7 +199,7 @@ and the input and output index enums, live in
 
 ## References
 
-This project bridges OpenTURNS (uncertainty quantification) and Signaloid (hardware-accelerated distributional arithmetic). The models implemented here are derived from standard OpenTURNS uncertainty propagation examples, executed on Signaloid's SCCE which implements the Laplace microarchitecture for tracking probability distributions through computation.
+This project bridges OpenTURNS (probabilistic analysis) and Signaloid (hardware-accelerated distributional arithmetic). The models implemented here are derived from standard OpenTURNS distribution propagation examples, executed on Signaloid's SCCE which implements the Laplace microarchitecture for tracking probability distributions through computation.
 
 ### OpenTURNS
 
@@ -169,9 +207,9 @@ This project bridges OpenTURNS (uncertainty quantification) and Signaloid (hardw
 
 2. **Andrianov, G., Burriel, S., Cambier, S., Dutfoy, A., Dutka-Malen, I., de Rocquigny, E., Sudret, B., Benjamin, P., Lebrun, R., Mangeant, F., and Pendola, M.** (2007). "Open TURNS, an Open Source Initiative to Treat Uncertainties, Risks'N Statistics in a Structured Industrial Approach." *Proceedings of the ESREL'2007 Safety and Reliability Conference*, Stavanger, Norway.
 
-### Signaloid and uncertainty-tracking computation
+### Signaloid and distribution arithmetic
 
 3. **Tsoutsouras, V., Kaparounakis, O., Bilgin, B., Samarakoon, C., Meech, J., Heck, J., and Stanley-Marbell, P.** (2021). "The Laplace Microarchitecture for Tracking Data Uncertainty and Its Implementation in a RISC-V Processor." In *MICRO-54: 54th Annual IEEE/ACM International Symposium on Microarchitecture*, pp. 1254--1269. ACM. DOI: [10.1145/3466752.3480131](https://doi.org/10.1145/3466752.3480131). This is the foundational paper for Signaloid's technology, introducing the Laplace microarchitecture that tracks probability distributions through computation on a RISC-V processor and defining the ISA extensions that became the UxHw API.
 
-4. **Bilgin, B. A., Elias, O. H., Selby, M., and Stanley-Marbell, P.** (2025). "Quantization of Probability Distributions via Divide-and-Conquer: Convergence and Error Propagation under Distributional Arithmetic Operations." arXiv preprint arXiv:2505.15283. DOI: [10.48550/arXiv.2505.15283](https://doi.org/10.48550/arXiv.2505.15283). Provides mathematical foundations for how Signaloid's processor discretizes continuous probability distributions, with error bounds for distributional arithmetic operations.
+4. **Bilgin, B. A., Elias, O. H., Selby, M., and Stanley-Marbell, P.** (2025). "Quantization of Probability Distributions via Divide-and-Conquer: Convergence and Error Propagation under Distributional Arithmetic Operations." arXiv preprint arXiv:2505.15283. DOI: [10.48550/arXiv.2505.15283](https://doi.org/10.48550/arXiv.2505.15283). Provides mathematical foundations for how Signaloid's processor approximates continuous probability distributions, with error bounds for distributional arithmetic operations.
 
